@@ -122,6 +122,18 @@ func (r *UserRepository) List(ctx context.Context, limit, offset int) ([]*entity
 	return users, rows.Err()
 }
 
+func (r *UserRepository) Count(ctx context.Context) (int64, error) {
+	var count int64
+	err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	return count, err
+}
+
+func (r *UserRepository) CountByRole(ctx context.Context, role string) (int64, error) {
+	var count int64
+	err := r.db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM users WHERE role = $1`, role).Scan(&count)
+	return count, err
+}
+
 func (r *UserRepository) scanUser(row pgx.Row) (*entity.User, error) {
 	user := &entity.User{}
 	err := row.Scan(
