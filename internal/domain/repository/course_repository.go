@@ -16,4 +16,5 @@ type CourseRepository interface {
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context, limit, offset int) ([]*entity.Course, error)
 	ListByAuthor(ctx context.Context, authorID string, limit, offset int) ([]*entity.Course, error)
+	Count(ctx context.Context) (int64, error)
 }

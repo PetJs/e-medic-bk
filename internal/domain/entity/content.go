@@ -9,6 +9,7 @@ type ContentType string
 const (
 	ContentTypePDF   ContentType = "pdf"
 	ContentTypeVideo ContentType = "video"
+	ContentTypeImage ContentType = "image"
 )
 
 // Content represents a piece of content (PDF or video) attached to a lesson.

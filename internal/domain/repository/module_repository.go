@@ -14,4 +14,6 @@ type ModuleRepository interface {
 	Update(ctx context.Context, module *entity.Module) error
 	Delete(ctx context.Context, id string) error
 	ListByCourse(ctx context.Context, courseID string) ([]*entity.Module, error)
+	// ListAll returns modules across all published courses.
+	ListAll(ctx context.Context) ([]*entity.Module, error)
 }

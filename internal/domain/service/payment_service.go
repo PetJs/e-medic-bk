@@ -1,23 +1,33 @@
 // Package service defines domain service interfaces for external services.
 package service
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
-// PaymentIntent represents an intent to collect payment.
-type PaymentIntent struct {
-	ID           string
-	ClientSecret string
-	Amount       int64
-	Currency     string
-	Status       string
+// CheckoutSession represents a hosted checkout session (redirect flow).
+type CheckoutSession struct {
+	AuthorizationURL string
+	AccessCode       string
+	Reference        string
+}
+
+// TransactionStatus represents the verified state of a transaction.
+type TransactionStatus struct {
+	Reference string
+	Status    string // "success", "failed", "abandoned", ...
+	Amount    int64  // smallest currency unit
+	Currency  string
+	PaidAt    time.Time
 }
 
 // PaymentService defines the interface for payment gateway operations.
 type PaymentService interface {
-	CreatePaymentIntent(ctx context.Context, amount int64, currency, customerID string) (*PaymentIntent, error)
-	ConfirmPayment(ctx context.Context, paymentIntentID string) (*PaymentIntent, error)
-	CreateCustomer(ctx context.Context, email, name string) (customerID string, err error)
-	CreateSubscription(ctx context.Context, customerID, priceID string) (subscriptionID string, err error)
-	CancelSubscription(ctx context.Context, subscriptionID string) error
-	HandleWebhook(ctx context.Context, payload []byte, signature string) (eventType string, data map[string]interface{}, err error)
+	// InitializeTransaction starts a hosted checkout and returns the redirect URL.
+	InitializeTransaction(ctx context.Context, email string, amount int64, currency, reference, callbackURL string) (*CheckoutSession, error)
+	// VerifyTransaction confirms a transaction's final status with the gateway.
+	VerifyTransaction(ctx context.Context, reference string) (*TransactionStatus, error)
+	// VerifyWebhookSignature checks a webhook payload's authenticity.
+	VerifyWebhookSignature(payload []byte, signature string) bool
 }

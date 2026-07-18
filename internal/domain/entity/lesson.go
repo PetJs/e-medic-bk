@@ -10,7 +10,7 @@ type Lesson struct {
 	Title       string
 	Description string
 	Order       int
-	Duration    int // in minutes
+	Duration    int // in seconds
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

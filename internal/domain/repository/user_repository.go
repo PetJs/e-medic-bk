@@ -15,4 +15,6 @@ type UserRepository interface {
 	Update(ctx context.Context, user *entity.User) error
 	Delete(ctx context.Context, id string) error
 	List(ctx context.Context, limit, offset int) ([]*entity.User, error)
+	Count(ctx context.Context) (int64, error)
+	CountByRole(ctx context.Context, role string) (int64, error)
 }

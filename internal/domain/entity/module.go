@@ -13,4 +13,8 @@ type Module struct {
 	IsPremium   bool // Requires subscription
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+
+	// Read-time aggregates populated by list queries (not stored columns).
+	LessonCount   int
+	TotalDuration int // sum of lesson durations, in seconds
 }

@@ -3,9 +3,14 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"emedic-bk/internal/domain/entity"
 )
+
+// ErrDuplicateActiveSubscription is returned by Create when the user already
+// has an active subscription (a concurrent activation won the race).
+var ErrDuplicateActiveSubscription = errors.New("user already has an active subscription")
 
 // SubscriptionRepository defines the interface for subscription data access.
 type SubscriptionRepository interface {
@@ -16,4 +21,5 @@ type SubscriptionRepository interface {
 	Delete(ctx context.Context, id string) error
 	ListByUser(ctx context.Context, userID string) ([]*entity.Subscription, error)
 	ListExpiring(ctx context.Context, withinDays int) ([]*entity.Subscription, error)
+	CountActive(ctx context.Context) (int64, error)
 }

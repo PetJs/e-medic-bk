@@ -14,4 +14,7 @@ type Progress struct {
 	CompletedAt  *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+
+	// ModuleID is a read-time aggregate joined from the lesson (list queries only).
+	ModuleID string
 }
