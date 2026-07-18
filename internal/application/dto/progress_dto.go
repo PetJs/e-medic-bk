@@ -16,6 +16,7 @@ type ProgressResponse struct {
 	ID           string     `json:"id"`
 	UserID       string     `json:"user_id"`
 	LessonID     string     `json:"lesson_id"`
+	ModuleID     string     `json:"module_id,omitempty"`
 	ProgressPct  int        `json:"progress_pct"`
 	LastPosition int        `json:"last_position"`
 	IsCompleted  bool       `json:"is_completed"`

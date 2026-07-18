@@ -5,18 +5,34 @@ import "time"
 
 // InitiatePaymentRequest represents a payment initiation request.
 type InitiatePaymentRequest struct {
-	Amount   int64  `json:"amount" validate:"required,min=1"`
-	Currency string `json:"currency" validate:"required"`
-	PlanID   string `json:"plan_id,omitempty"`
+	PlanID string `json:"plan_id" binding:"required"`
 }
 
-// PaymentIntentResponse represents a payment intent response.
-type PaymentIntentResponse struct {
-	ID           string `json:"id"`
-	ClientSecret string `json:"client_secret"`
-	Amount       int64  `json:"amount"`
-	Currency     string `json:"currency"`
-	Status       string `json:"status"`
+// InitiateCheckoutResponse points the client at the gateway's hosted checkout.
+type InitiateCheckoutResponse struct {
+	AuthorizationURL string `json:"authorization_url"`
+	Reference        string `json:"reference"`
+}
+
+// VerifyPaymentRequest asks the API to confirm a transaction by reference.
+type VerifyPaymentRequest struct {
+	Reference string `json:"reference" binding:"required"`
+}
+
+// VerifyPaymentResponse reports the verified payment outcome.
+type VerifyPaymentResponse struct {
+	Status       string                `json:"status"` // "success" or "failed"
+	Subscription *SubscriptionResponse `json:"subscription,omitempty"`
+}
+
+// PlanResponse describes a purchasable subscription plan.
+type PlanResponse struct {
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Amount   int64    `json:"amount"` // smallest currency unit
+	Currency string   `json:"currency"`
+	Interval string   `json:"interval"`
+	Features []string `json:"features"`
 }
 
 // PaymentResponse represents a payment in API responses.
@@ -43,4 +59,12 @@ type ListPaymentsResponse struct {
 	TotalCount int64              `json:"total_count"`
 	Page       int                `json:"page"`
 	Limit      int                `json:"limit"`
+}
+
+// AdminStatsResponse aggregates platform stats for the admin dashboard.
+type AdminStatsResponse struct {
+	TotalStudents       int64  `json:"total_students"`
+	ActiveSubscriptions int64  `json:"active_subscriptions"`
+	MonthlyRevenue      int64  `json:"monthly_revenue"` // smallest currency unit, last 30 days
+	Currency            string `json:"currency"`
 }

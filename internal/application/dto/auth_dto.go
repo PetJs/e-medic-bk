@@ -25,6 +25,11 @@ type AuthResponse struct {
 	User         UserResponse `json:"user"`
 }
 
+// RefreshRequest represents a token refresh request.
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
 // ResetPasswordRequest represents a password reset request.
 type ResetPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
