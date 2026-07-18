@@ -27,6 +27,7 @@ func NewRouter(
 	qnaHandler *handler.QnAHandler,
 	progressHandler *handler.ProgressHandler,
 	healthHandler *handler.HealthHandler,
+	adminHandler *handler.AdminHandler,
 	authMiddleware *middleware.AuthMiddleware,
 	roleMiddleware *middleware.RoleMiddleware,
 ) *Router {
@@ -71,6 +72,7 @@ func NewRouter(
 
 			// Modules & Lessons (use nested paths to avoid conflicts)
 			protected.GET("/modules", moduleHandler.ListModules) // ?course_id=xxx
+			protected.GET("/modules/:id", moduleHandler.GetModule)
 			protected.GET("/modules/:id/lessons", lessonHandler.ListLessons)
 			protected.GET("/lessons/:id", lessonHandler.GetLesson)
 
@@ -82,13 +84,14 @@ func NewRouter(
 			protected.GET("/enrollments", enrollmentHandler.ListEnrollments)
 			protected.DELETE("/enrollments/:id", enrollmentHandler.Unenroll)
 
-			// Subscriptions
-			protected.POST("/subscriptions", subscriptionHandler.Create)
+			// Subscriptions (created via payment verification, not directly)
 			protected.GET("/subscriptions", subscriptionHandler.List)
 			protected.DELETE("/subscriptions/:id", subscriptionHandler.Cancel)
 
-			// Payments
+			// Plans & Payments
+			protected.GET("/plans", paymentHandler.ListPlans)
 			protected.POST("/payments", paymentHandler.InitiatePayment)
+			protected.POST("/payments/verify", paymentHandler.VerifyPayment)
 			protected.GET("/payments", paymentHandler.ListPayments)
 
 			// Q&A
@@ -103,6 +106,7 @@ func NewRouter(
 
 			// Progress
 			protected.POST("/progress", progressHandler.UpdateProgress)
+			protected.GET("/progress", progressHandler.ListProgress)
 			protected.GET("/progress/:id", progressHandler.GetProgress)
 			protected.GET("/progress/course/:id", progressHandler.GetCourseProgress)
 		}
@@ -112,6 +116,9 @@ func NewRouter(
 		admin.Use(authMiddleware.Authenticate())
 		admin.Use(roleMiddleware.RequireRole("admin"))
 		{
+			// Dashboard stats
+			admin.GET("/stats", adminHandler.Stats)
+
 			// Users
 			admin.GET("/users", userHandler.ListUsers)
 
@@ -138,7 +145,6 @@ func NewRouter(
 		// Webhook routes (no auth, but signature verification)
 		webhooks := v1.Group("/webhooks")
 		{
-			webhooks.POST("/stripe", paymentHandler.StripeWebhook)
 			webhooks.POST("/paystack", paymentHandler.PaystackWebhook)
 		}
 	}

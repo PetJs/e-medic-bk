@@ -15,13 +15,15 @@ import (
 type AuthHandler struct {
 	registerUC *auth.RegisterUseCase
 	loginUC    *auth.LoginUseCase
+	refreshUC  *auth.RefreshTokenUseCase
 }
 
 // NewAuthHandler creates a new AuthHandler.
-func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase) *AuthHandler {
+func NewAuthHandler(registerUC *auth.RegisterUseCase, loginUC *auth.LoginUseCase, refreshUC *auth.RefreshTokenUseCase) *AuthHandler {
 	return &AuthHandler{
 		registerUC: registerUC,
 		loginUC:    loginUC,
+		refreshUC:  refreshUC,
 	}
 }
 
@@ -39,7 +41,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Registration failed"})
+		internalError(c, "Registration failed", err)
 		return
 	}
 
@@ -64,7 +66,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Account is inactive"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Login failed"})
+		internalError(c, "Login failed", err)
 		return
 	}
 
@@ -80,8 +82,23 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 
 // RefreshToken handles token refresh.
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
-	// TODO: Implement token refresh
-	c.JSON(http.StatusNotImplemented, gin.H{"error": "Not implemented"})
+	var req dto.RefreshRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	response, err := h.refreshUC.Execute(c.Request.Context(), req.RefreshToken)
+	if err != nil {
+		if errors.Is(err, auth.ErrInvalidRefreshToken) || errors.Is(err, auth.ErrUserInactive) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired refresh token"})
+			return
+		}
+		internalError(c, "Token refresh failed", err)
+		return
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 // RequestPasswordReset handles password reset requests.
