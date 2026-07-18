@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
 	"emedic-bk/config"
@@ -42,6 +43,9 @@ func main() {
 
 	// Load configuration
 	cfg := config.Load()
+	if cfg.Server.Environment == "production" {
+		gin.SetMode(gin.ReleaseMode)
+	}
 
 	// Create context
 	ctx := context.Background()

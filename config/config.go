@@ -100,7 +100,8 @@ type SMTPConfig struct {
 func Load() *Config {
 	return &Config{
 		Server: ServerConfig{
-			Port:         getEnv("SERVER_PORT", "8080"),
+			// PORT is what PaaS hosts (Render, Railway) inject; SERVER_PORT is ours.
+			Port:         getEnv("PORT", getEnv("SERVER_PORT", "8080")),
 			Environment:  getEnv("ENVIRONMENT", "development"),
 			ReadTimeout:  getDurationEnv("SERVER_READ_TIMEOUT", 10*time.Second),
 			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 10*time.Second),

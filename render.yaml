@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: emedic-api
+    runtime: go
+    plan: free
+    region: frankfurt
+    buildCommand: go build -o app ./cmd/api && go build -o migrate-db ./cmd/migrate
+    # Migrations are idempotent, so running them on every boot is safe.
+    startCommand: ./migrate-db && ./app
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_TTL
+        value: 15m
+      - key: JWT_REFRESH_TTL
+        value: 168h
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        value: auto
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_BUCKET_NAME
+        value: emedic-content
+      - key: S3_USE_PATH_STYLE
+        value: "true"
+      - key: PLAN_MONTHLY_AMOUNT
+        value: "500000"
+      - key: PLAN_CURRENCY
+        value: NGN
