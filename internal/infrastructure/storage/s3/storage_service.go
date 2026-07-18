@@ -6,6 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awss3 "github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"emedic-bk/internal/domain/service"
 )
 
@@ -20,26 +23,54 @@ func NewStorageService(client *Client) service.StorageService {
 }
 
 func (s *StorageService) Upload(ctx context.Context, key string, body io.Reader, contentType string, size int64) error {
-	// TODO: Implement S3 upload
-	return nil
+	_, err := s.client.client.PutObject(ctx, &awss3.PutObjectInput{
+		Bucket:        &s.client.bucketName,
+		Key:           &key,
+		Body:          body,
+		ContentType:   &contentType,
+		ContentLength: aws.Int64(size),
+	})
+	return err
 }
 
 func (s *StorageService) Download(ctx context.Context, key string) (io.ReadCloser, error) {
-	// TODO: Implement S3 download
-	return nil, nil
+	out, err := s.client.client.GetObject(ctx, &awss3.GetObjectInput{
+		Bucket: &s.client.bucketName,
+		Key:    &key,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out.Body, nil
 }
 
 func (s *StorageService) Delete(ctx context.Context, key string) error {
-	// TODO: Implement S3 delete
-	return nil
+	_, err := s.client.client.DeleteObject(ctx, &awss3.DeleteObjectInput{
+		Bucket: &s.client.bucketName,
+		Key:    &key,
+	})
+	return err
 }
 
 func (s *StorageService) GetSignedURL(ctx context.Context, key string, expiry time.Duration) (string, error) {
-	// TODO: Implement presigned URL generation
-	return "", nil
+	req, err := s.client.presign.PresignGetObject(ctx, &awss3.GetObjectInput{
+		Bucket: &s.client.bucketName,
+		Key:    &key,
+	}, awss3.WithPresignExpires(expiry))
+	if err != nil {
+		return "", err
+	}
+	return req.URL, nil
 }
 
 func (s *StorageService) GetUploadURL(ctx context.Context, key, contentType string, expiry time.Duration) (string, error) {
-	// TODO: Implement presigned upload URL generation
-	return "", nil
+	req, err := s.client.presign.PresignPutObject(ctx, &awss3.PutObjectInput{
+		Bucket:      &s.client.bucketName,
+		Key:         &key,
+		ContentType: &contentType,
+	}, awss3.WithPresignExpires(expiry))
+	if err != nil {
+		return "", err
+	}
+	return req.URL, nil
 }
