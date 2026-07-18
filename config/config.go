@@ -17,6 +17,7 @@ type Config struct {
 	Stripe   StripeConfig
 	Paystack PaystackConfig
 	SMTP     SMTPConfig
+	Plan     PlanConfig
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -25,10 +26,22 @@ type ServerConfig struct {
 	Environment  string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
+	// FrontendURL is used for payment callback redirects and CORS.
+	FrontendURL string
+}
+
+// PlanConfig holds the subscription plan settings.
+type PlanConfig struct {
+	// Amount in the smallest currency unit (kobo for NGN).
+	Amount   int64
+	Currency string
 }
 
 // DatabaseConfig holds database configuration.
 type DatabaseConfig struct {
+	// URL, when set (e.g. a Neon connection string), takes precedence
+	// over the individual host/port/user fields.
+	URL      string
 	Host     string
 	Port     string
 	User     string
@@ -91,8 +104,10 @@ func Load() *Config {
 			Environment:  getEnv("ENVIRONMENT", "development"),
 			ReadTimeout:  getDurationEnv("SERVER_READ_TIMEOUT", 10*time.Second),
 			WriteTimeout: getDurationEnv("SERVER_WRITE_TIMEOUT", 10*time.Second),
+			FrontendURL:  getEnv("FRONTEND_URL", "http://localhost:5173"),
 		},
 		Database: DatabaseConfig{
+			URL:      getEnv("DATABASE_URL", ""),
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     getEnv("DB_PORT", "5432"),
 			User:     getEnv("DB_USER", "postgres"),
@@ -127,6 +142,10 @@ func Load() *Config {
 			SecretKey:     getEnv("PAYSTACK_SECRET_KEY", ""),
 			WebhookSecret: getEnv("PAYSTACK_WEBHOOK_SECRET", ""),
 		},
+		Plan: PlanConfig{
+			Amount:   getInt64Env("PLAN_MONTHLY_AMOUNT", 500000), // ₦5,000 in kobo
+			Currency: getEnv("PLAN_CURRENCY", "NGN"),
+		},
 		SMTP: SMTPConfig{
 			Host:     getEnv("SMTP_HOST", "localhost"),
 			Port:     getIntEnv("SMTP_PORT", 587),
@@ -139,12 +158,24 @@ func Load() *Config {
 
 // DatabaseURL returns the PostgreSQL connection string.
 func (c *DatabaseConfig) DatabaseURL() string {
+	if c.URL != "" {
+		return c.URL
+	}
 	return "postgres://" + c.User + ":" + c.Password + "@" + c.Host + ":" + c.Port + "/" + c.DBName + "?sslmode=" + c.SSLMode
 }
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getInt64Env(key string, defaultValue int64) int64 {
+	if value := os.Getenv(key); value != "" {
+		if intValue, err := strconv.ParseInt(value, 10, 64); err == nil {
+			return intValue
+		}
 	}
 	return defaultValue
 }
