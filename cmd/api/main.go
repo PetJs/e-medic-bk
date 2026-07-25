@@ -28,6 +28,8 @@ import (
 	"emedic-bk/internal/delivery/http/handler"
 	"emedic-bk/internal/delivery/http/middleware"
 	"emedic-bk/internal/delivery/http/router"
+	"emedic-bk/internal/domain/service"
+	"emedic-bk/internal/infrastructure/ai/gemini"
 	infraAuth "emedic-bk/internal/infrastructure/auth"
 	"emedic-bk/internal/infrastructure/payment/paystack"
 	"emedic-bk/internal/infrastructure/persistence/postgres"
@@ -87,6 +89,12 @@ func main() {
 		UsePathStyle:    cfg.S3.UsePathStyle,
 	}))
 
+	var imageGen service.ImageGenerator
+	if cfg.Gemini.APIKey != "" {
+		imageGen = gemini.NewImageService(gemini.Config{APIKey: cfg.Gemini.APIKey, Model: cfg.Gemini.Model})
+	}
+	coverGen := module.NewModuleCoverGenerator(moduleRepo, storageSvc, imageGen)
+
 	// Initialize use cases
 	registerUC := auth.NewRegisterUseCase(userRepo, hasher, tokenGen, idGen)
 	loginUC := auth.NewLoginUseCase(userRepo, hasher, tokenGen)
@@ -99,15 +107,16 @@ func main() {
 	createCourseUC := course.NewCreateCourseUseCase(courseRepo, idGen)
 	updateCourseUC := course.NewUpdateCourseUseCase(courseRepo)
 	deleteCourseUC := course.NewDeleteCourseUseCase(courseRepo, moduleRepo, lessonRepo, contentRepo, storageSvc)
-	getCourseUC := course.NewGetCourseUseCase(courseRepo, moduleRepo)
+	getCourseUC := course.NewGetCourseUseCase(courseRepo, moduleRepo, storageSvc)
 	listCoursesUC := course.NewListCoursesUseCase(courseRepo)
 
 	// Module use cases
-	createModuleUC := module.NewCreateModuleUseCase(moduleRepo, courseRepo, idGen)
-	updateModuleUC := module.NewUpdateModuleUseCase(moduleRepo)
+	createModuleUC := module.NewCreateModuleUseCase(moduleRepo, courseRepo, idGen, storageSvc, coverGen)
+	updateModuleUC := module.NewUpdateModuleUseCase(moduleRepo, storageSvc, coverGen)
 	deleteModuleUC := module.NewDeleteModuleUseCase(moduleRepo, lessonRepo, contentRepo, storageSvc)
-	listModulesUC := module.NewListModulesUseCase(moduleRepo)
-	getModuleUC := module.NewGetModuleUseCase(moduleRepo)
+	listModulesUC := module.NewListModulesUseCase(moduleRepo, storageSvc)
+	getModuleUC := module.NewGetModuleUseCase(moduleRepo, storageSvc)
+	regenerateCoverUC := module.NewRegenerateCoverUseCase(moduleRepo, coverGen)
 
 	// Lesson use cases
 	createLessonUC := lesson.NewCreateLessonUseCase(lessonRepo, moduleRepo, idGen)
@@ -146,7 +155,7 @@ func main() {
 	authHandler := handler.NewAuthHandler(registerUC, loginUC, refreshUC)
 	userHandler := handler.NewUserHandler(getProfileUC, updateProfileUC, listUsersUC)
 	courseHandler := handler.NewCourseHandler(createCourseUC, updateCourseUC, deleteCourseUC, getCourseUC, listCoursesUC)
-	moduleHandler := handler.NewModuleHandler(createModuleUC, updateModuleUC, deleteModuleUC, listModulesUC, getModuleUC)
+	moduleHandler := handler.NewModuleHandler(createModuleUC, updateModuleUC, deleteModuleUC, listModulesUC, getModuleUC, regenerateCoverUC)
 	lessonHandler := handler.NewLessonHandler(createLessonUC, updateLessonUC, deleteLessonUC, getLessonUC, listLessonsUC)
 	subscriptionHandler := handler.NewSubscriptionHandler(listSubsUC, cancelSubUC)
 	paymentHandler := handler.NewPaymentHandler(initiatePaymentUC, verifyPaymentUC, listPaymentsUC, paystackSvc, plan)

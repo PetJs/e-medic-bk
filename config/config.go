@@ -18,6 +18,7 @@ type Config struct {
 	Paystack PaystackConfig
 	SMTP     SMTPConfig
 	Plan     PlanConfig
+	Gemini   GeminiConfig
 }
 
 // ServerConfig holds HTTP server configuration.
@@ -87,6 +88,12 @@ type PaystackConfig struct {
 	WebhookSecret string
 }
 
+// GeminiConfig holds Gemini API configuration for AI module cover images.
+type GeminiConfig struct {
+	APIKey string
+	Model  string
+}
+
 // SMTPConfig holds SMTP configuration.
 type SMTPConfig struct {
 	Host     string
@@ -142,6 +149,10 @@ func Load() *Config {
 		Paystack: PaystackConfig{
 			SecretKey:     getEnv("PAYSTACK_SECRET_KEY", ""),
 			WebhookSecret: getEnv("PAYSTACK_WEBHOOK_SECRET", ""),
+		},
+		Gemini: GeminiConfig{
+			APIKey: getEnv("GEMINI_API_KEY", ""),
+			Model:  getEnv("GEMINI_IMAGE_MODEL", "gemini-3.1-flash-image"),
 		},
 		Plan: PlanConfig{
 			Amount:   getInt64Env("PLAN_MONTHLY_AMOUNT", 500000), // ₦5,000 in kobo

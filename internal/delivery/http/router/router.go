@@ -131,6 +131,7 @@ func NewRouter(
 			admin.POST("/modules", moduleHandler.CreateModule)
 			admin.PUT("/modules/:id", moduleHandler.UpdateModule)
 			admin.DELETE("/modules/:id", moduleHandler.DeleteModule)
+			admin.POST("/modules/:id/regenerate-cover", moduleHandler.RegenerateCover)
 
 			// Lessons
 			admin.POST("/lessons", lessonHandler.CreateLesson)
