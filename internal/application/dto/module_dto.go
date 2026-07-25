@@ -22,13 +22,15 @@ type UpdateModuleRequest struct {
 
 // ModuleResponse represents a module in API responses.
 type ModuleResponse struct {
-	ID            string    `json:"id"`
-	CourseID      string    `json:"course_id"`
-	Title         string    `json:"title"`
-	Description   string    `json:"description"`
-	Order         int       `json:"order"`
-	IsPremium     bool      `json:"is_premium"`
-	LessonCount   int       `json:"lesson_count"`
-	TotalDuration int       `json:"total_duration"` // seconds
-	CreatedAt     time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	CourseID         string    `json:"course_id"`
+	Title            string    `json:"title"`
+	Description      string    `json:"description"`
+	Order            int       `json:"order"`
+	IsPremium        bool      `json:"is_premium"`
+	CoverImageURL    string    `json:"cover_image_url,omitempty"`
+	CoverImageStatus string    `json:"cover_image_status"`
+	LessonCount      int       `json:"lesson_count"`
+	TotalDuration    int       `json:"total_duration"` // seconds
+	CreatedAt        time.Time `json:"created_at"`
 }
