@@ -13,11 +13,12 @@ import (
 
 // ModuleHandler handles module requests.
 type ModuleHandler struct {
-	createUC *module.CreateModuleUseCase
-	updateUC *module.UpdateModuleUseCase
-	deleteUC *module.DeleteModuleUseCase
-	listUC   *module.ListModulesUseCase
-	getUC    *module.GetModuleUseCase
+	createUC          *module.CreateModuleUseCase
+	updateUC          *module.UpdateModuleUseCase
+	deleteUC          *module.DeleteModuleUseCase
+	listUC            *module.ListModulesUseCase
+	getUC             *module.GetModuleUseCase
+	regenerateCoverUC *module.RegenerateCoverUseCase
 }
 
 // NewModuleHandler creates a new ModuleHandler.
@@ -27,13 +28,15 @@ func NewModuleHandler(
 	deleteUC *module.DeleteModuleUseCase,
 	listUC *module.ListModulesUseCase,
 	getUC *module.GetModuleUseCase,
+	regenerateCoverUC *module.RegenerateCoverUseCase,
 ) *ModuleHandler {
 	return &ModuleHandler{
-		createUC: createUC,
-		updateUC: updateUC,
-		deleteUC: deleteUC,
-		listUC:   listUC,
-		getUC:    getUC,
+		createUC:          createUC,
+		updateUC:          updateUC,
+		deleteUC:          deleteUC,
+		listUC:            listUC,
+		getUC:             getUC,
+		regenerateCoverUC: regenerateCoverUC,
 	}
 }
 
@@ -88,6 +91,19 @@ func (h *ModuleHandler) DeleteModule(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Module deleted"})
+}
+
+// RegenerateCover re-triggers AI cover image generation for a module (admin).
+func (h *ModuleHandler) RegenerateCover(c *gin.Context) {
+	if err := h.regenerateCoverUC.Execute(c.Request.Context(), c.Param("id")); err != nil {
+		if errors.Is(err, module.ErrModuleNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Module not found"})
+			return
+		}
+		internalError(c, "Failed to regenerate cover", err)
+		return
+	}
+	c.JSON(http.StatusAccepted, gin.H{"message": "Cover regeneration started"})
 }
 
 // ListModules lists modules, optionally filtered by ?course_id.

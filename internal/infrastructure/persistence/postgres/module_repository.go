@@ -19,13 +19,14 @@ func NewModuleRepository(db *DB) repository.ModuleRepository { return &ModuleRep
 // Lists join lessons to expose per-module lesson counts and total duration.
 const moduleSelect = `
 	SELECT m.id, m.course_id, m.title, COALESCE(m.description, ''), m."order", m.is_premium,
+	       COALESCE(m.cover_image_key, ''), m.cover_image_status,
 	       m.created_at, m.updated_at,
 	       COUNT(l.id), COALESCE(SUM(l.duration), 0)
 	FROM modules m
 	LEFT JOIN lessons l ON l.module_id = m.id
 `
 
-const moduleGroupBy = ` GROUP BY m.id, m.course_id, m.title, m.description, m."order", m.is_premium, m.created_at, m.updated_at`
+const moduleGroupBy = ` GROUP BY m.id, m.course_id, m.title, m.description, m."order", m.is_premium, m.cover_image_key, m.cover_image_status, m.created_at, m.updated_at`
 
 func (r *ModuleRepository) Create(ctx context.Context, module *entity.Module) error {
 	query := `
@@ -67,6 +68,12 @@ func (r *ModuleRepository) Update(ctx context.Context, module *entity.Module) er
 	return err
 }
 
+func (r *ModuleRepository) UpdateCoverImage(ctx context.Context, id, coverImageKey, coverImageStatus string) error {
+	query := `UPDATE modules SET cover_image_key = $2, cover_image_status = $3, updated_at = $4 WHERE id = $1`
+	_, err := r.db.Pool.Exec(ctx, query, id, coverImageKey, coverImageStatus, time.Now())
+	return err
+}
+
 func (r *ModuleRepository) Delete(ctx context.Context, id string) error {
 	_, err := r.db.Pool.Exec(ctx, `DELETE FROM modules WHERE id = $1`, id)
 	return err
@@ -87,6 +94,7 @@ func (r *ModuleRepository) ListByCourse(ctx context.Context, courseID string) ([
 func (r *ModuleRepository) ListAll(ctx context.Context) ([]*entity.Module, error) {
 	query := `
 		SELECT m.id, m.course_id, m.title, COALESCE(m.description, ''), m."order", m.is_premium,
+		       COALESCE(m.cover_image_key, ''), m.cover_image_status,
 		       m.created_at, m.updated_at,
 		       COUNT(l.id), COALESCE(SUM(l.duration), 0)
 		FROM modules m
@@ -110,6 +118,8 @@ func (r *ModuleRepository) scanModule(row pgx.Row) (*entity.Module, error) {
 		&module.Description,
 		&module.Order,
 		&module.IsPremium,
+		&module.CoverImageKey,
+		&module.CoverImageStatus,
 		&module.CreatedAt,
 		&module.UpdatedAt,
 		&module.LessonCount,
@@ -135,6 +145,8 @@ func (r *ModuleRepository) scanModules(rows pgx.Rows) ([]*entity.Module, error) 
 			&module.Description,
 			&module.Order,
 			&module.IsPremium,
+			&module.CoverImageKey,
+			&module.CoverImageStatus,
 			&module.CreatedAt,
 			&module.UpdatedAt,
 			&module.LessonCount,
