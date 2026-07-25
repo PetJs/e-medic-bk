@@ -5,18 +5,21 @@ import (
 	"context"
 
 	"emedic-bk/internal/application/dto"
+	"emedic-bk/internal/application/usecase/module"
 	"emedic-bk/internal/domain/repository"
+	"emedic-bk/internal/domain/service"
 )
 
 // GetCourseUseCase handles fetching a course with its modules.
 type GetCourseUseCase struct {
 	courseRepo repository.CourseRepository
 	moduleRepo repository.ModuleRepository
+	storageSvc service.StorageService
 }
 
 // NewGetCourseUseCase creates a new GetCourseUseCase.
-func NewGetCourseUseCase(courseRepo repository.CourseRepository, moduleRepo repository.ModuleRepository) *GetCourseUseCase {
-	return &GetCourseUseCase{courseRepo: courseRepo, moduleRepo: moduleRepo}
+func NewGetCourseUseCase(courseRepo repository.CourseRepository, moduleRepo repository.ModuleRepository, storageSvc service.StorageService) *GetCourseUseCase {
+	return &GetCourseUseCase{courseRepo: courseRepo, moduleRepo: moduleRepo, storageSvc: storageSvc}
 }
 
 // Execute fetches a course and its modules.
@@ -36,17 +39,7 @@ func (uc *GetCourseUseCase) Execute(ctx context.Context, id string) (*dto.Course
 
 	moduleResponses := make([]*dto.ModuleResponse, 0, len(modules))
 	for _, m := range modules {
-		moduleResponses = append(moduleResponses, &dto.ModuleResponse{
-			ID:            m.ID,
-			CourseID:      m.CourseID,
-			Title:         m.Title,
-			Description:   m.Description,
-			Order:         m.Order,
-			IsPremium:     m.IsPremium,
-			LessonCount:   m.LessonCount,
-			TotalDuration: m.TotalDuration,
-			CreatedAt:     m.CreatedAt,
-		})
+		moduleResponses = append(moduleResponses, module.ToModuleResponse(ctx, m, uc.storageSvc))
 	}
 
 	return &dto.CourseDetailResponse{
