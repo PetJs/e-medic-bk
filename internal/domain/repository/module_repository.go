@@ -16,4 +16,6 @@ type ModuleRepository interface {
 	ListByCourse(ctx context.Context, courseID string) ([]*entity.Module, error)
 	// ListAll returns modules across all published courses.
 	ListAll(ctx context.Context) ([]*entity.Module, error)
+	// UpdateCoverImage sets the generated cover image's storage key and status.
+	UpdateCoverImage(ctx context.Context, id, coverImageKey, coverImageStatus string) error
 }
