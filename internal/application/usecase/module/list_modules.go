@@ -7,16 +7,18 @@ import (
 	"emedic-bk/internal/application/dto"
 	"emedic-bk/internal/domain/entity"
 	"emedic-bk/internal/domain/repository"
+	"emedic-bk/internal/domain/service"
 )
 
 // ListModulesUseCase handles listing modules.
 type ListModulesUseCase struct {
 	moduleRepo repository.ModuleRepository
+	storageSvc service.StorageService
 }
 
 // NewListModulesUseCase creates a new ListModulesUseCase.
-func NewListModulesUseCase(moduleRepo repository.ModuleRepository) *ListModulesUseCase {
-	return &ListModulesUseCase{moduleRepo: moduleRepo}
+func NewListModulesUseCase(moduleRepo repository.ModuleRepository, storageSvc service.StorageService) *ListModulesUseCase {
+	return &ListModulesUseCase{moduleRepo: moduleRepo, storageSvc: storageSvc}
 }
 
 // Execute lists modules — by course when courseID is set, otherwise across all published courses.
@@ -36,7 +38,7 @@ func (uc *ListModulesUseCase) Execute(ctx context.Context, courseID string) ([]*
 
 	responses := make([]*dto.ModuleResponse, 0, len(modules))
 	for _, m := range modules {
-		responses = append(responses, toModuleResponse(m))
+		responses = append(responses, ToModuleResponse(ctx, m, uc.storageSvc))
 	}
 	return responses, nil
 }
@@ -44,11 +46,12 @@ func (uc *ListModulesUseCase) Execute(ctx context.Context, courseID string) ([]*
 // GetModuleUseCase handles fetching a single module.
 type GetModuleUseCase struct {
 	moduleRepo repository.ModuleRepository
+	storageSvc service.StorageService
 }
 
 // NewGetModuleUseCase creates a new GetModuleUseCase.
-func NewGetModuleUseCase(moduleRepo repository.ModuleRepository) *GetModuleUseCase {
-	return &GetModuleUseCase{moduleRepo: moduleRepo}
+func NewGetModuleUseCase(moduleRepo repository.ModuleRepository, storageSvc service.StorageService) *GetModuleUseCase {
+	return &GetModuleUseCase{moduleRepo: moduleRepo, storageSvc: storageSvc}
 }
 
 // Execute fetches a module by ID.
@@ -60,5 +63,5 @@ func (uc *GetModuleUseCase) Execute(ctx context.Context, id string) (*dto.Module
 	if module == nil {
 		return nil, ErrModuleNotFound
 	}
-	return toModuleResponse(module), nil
+	return ToModuleResponse(ctx, module, uc.storageSvc), nil
 }
