@@ -25,6 +25,7 @@ func NewRouter(
 	subscriptionHandler *handler.SubscriptionHandler,
 	paymentHandler *handler.PaymentHandler,
 	qnaHandler *handler.QnAHandler,
+	discussionHandler *handler.DiscussionHandler,
 	progressHandler *handler.ProgressHandler,
 	healthHandler *handler.HealthHandler,
 	adminHandler *handler.AdminHandler,
@@ -75,6 +76,15 @@ func NewRouter(
 			protected.GET("/modules/:id", moduleHandler.GetModule)
 			protected.GET("/modules/:id/lessons", lessonHandler.ListLessons)
 			protected.GET("/lessons/:id", lessonHandler.GetLesson)
+
+			// Discussion boards (per module; posts + threaded comments)
+			protected.GET("/modules/:id/posts", discussionHandler.ListPosts) // ?page=&limit=
+			protected.POST("/modules/:id/posts", discussionHandler.CreatePost)
+			protected.GET("/posts/:id", discussionHandler.GetPost)
+			protected.DELETE("/posts/:id", discussionHandler.DeletePost) // own or admin
+			protected.GET("/posts/:id/comments", discussionHandler.ListComments)
+			protected.POST("/posts/:id/comments", discussionHandler.CreateComment)
+			protected.DELETE("/comments/:id", discussionHandler.DeleteComment) // own or admin
 
 			// Content
 			protected.GET("/content/:id/url", contentHandler.GetContentURL)
@@ -132,6 +142,10 @@ func NewRouter(
 			admin.PUT("/modules/:id", moduleHandler.UpdateModule)
 			admin.DELETE("/modules/:id", moduleHandler.DeleteModule)
 			admin.POST("/modules/:id/regenerate-cover", moduleHandler.RegenerateCover)
+
+			// Discussion moderation
+			admin.POST("/posts/:id/pin", discussionHandler.PinPost)
+			admin.DELETE("/posts/:id/pin", discussionHandler.UnpinPost)
 
 			// Lessons
 			admin.POST("/lessons", lessonHandler.CreateLesson)

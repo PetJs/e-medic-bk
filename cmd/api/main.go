@@ -19,6 +19,7 @@ import (
 	"emedic-bk/internal/application/usecase/auth"
 	contentUC "emedic-bk/internal/application/usecase/content"
 	"emedic-bk/internal/application/usecase/course"
+	"emedic-bk/internal/application/usecase/discussion"
 	"emedic-bk/internal/application/usecase/lesson"
 	"emedic-bk/internal/application/usecase/module"
 	"emedic-bk/internal/application/usecase/payment"
@@ -69,6 +70,8 @@ func main() {
 	subscriptionRepo := postgres.NewSubscriptionRepository(db)
 	paymentRepo := postgres.NewPaymentRepository(db)
 	progressRepo := postgres.NewProgressRepository(db)
+	discussionPostRepo := postgres.NewDiscussionPostRepository(db)
+	discussionCommentRepo := postgres.NewDiscussionCommentRepository(db)
 
 	// Initialize infrastructure services
 	hasher := infraAuth.NewBcryptHasher(12)
@@ -148,6 +151,17 @@ func main() {
 	listProgressUC := progressUC.NewListProgressUseCase(progressRepo)
 	courseProgressUC := progressUC.NewGetCourseProgressUseCase(progressRepo)
 
+	// Discussion use cases
+	createPostUC := discussion.NewCreatePostUseCase(discussionPostRepo, moduleRepo, idGen)
+	listPostsUC := discussion.NewListPostsUseCase(discussionPostRepo, moduleRepo)
+	getPostUC := discussion.NewGetPostUseCase(discussionPostRepo)
+	deletePostUC := discussion.NewDeletePostUseCase(discussionPostRepo)
+	pinPostUC := discussion.NewPinPostUseCase(discussionPostRepo)
+	unpinPostUC := discussion.NewUnpinPostUseCase(discussionPostRepo)
+	createCommentUC := discussion.NewCreateCommentUseCase(discussionCommentRepo, discussionPostRepo, idGen)
+	listCommentsUC := discussion.NewListCommentsUseCase(discussionCommentRepo, discussionPostRepo)
+	deleteCommentUC := discussion.NewDeleteCommentUseCase(discussionCommentRepo)
+
 	// Admin use cases
 	statsUC := admin.NewGetStatsUseCase(userRepo, subscriptionRepo, paymentRepo, cfg.Plan.Currency)
 
@@ -161,6 +175,10 @@ func main() {
 	paymentHandler := handler.NewPaymentHandler(initiatePaymentUC, verifyPaymentUC, listPaymentsUC, paystackSvc, plan)
 	adminHandler := handler.NewAdminHandler(statsUC)
 	contentHandler := handler.NewContentHandler(uploadContentUC, getContentURLUC, deleteContentUC)
+	discussionHandler := handler.NewDiscussionHandler(
+		createPostUC, listPostsUC, getPostUC, deletePostUC, pinPostUC, unpinPostUC,
+		createCommentUC, listCommentsUC, deleteCommentUC,
+	)
 
 	progressHandler := handler.NewProgressHandler(updateProgressUC, getProgressUC, listProgressUC, courseProgressUC)
 
@@ -185,6 +203,7 @@ func main() {
 		subscriptionHandler,
 		paymentHandler,
 		qnaHandler,
+		discussionHandler,
 		progressHandler,
 		healthHandler,
 		adminHandler,
