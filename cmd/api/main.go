@@ -24,6 +24,7 @@ import (
 	"emedic-bk/internal/application/usecase/module"
 	"emedic-bk/internal/application/usecase/payment"
 	progressUC "emedic-bk/internal/application/usecase/progress"
+	"emedic-bk/internal/application/usecase/quiz"
 	"emedic-bk/internal/application/usecase/subscription"
 	"emedic-bk/internal/application/usecase/user"
 	"emedic-bk/internal/delivery/http/handler"
@@ -72,6 +73,8 @@ func main() {
 	progressRepo := postgres.NewProgressRepository(db)
 	discussionPostRepo := postgres.NewDiscussionPostRepository(db)
 	discussionCommentRepo := postgres.NewDiscussionCommentRepository(db)
+	quizQuestionRepo := postgres.NewQuizQuestionRepository(db)
+	quizAnswerRepo := postgres.NewQuizAnswerRepository(db)
 
 	// Initialize infrastructure services
 	hasher := infraAuth.NewBcryptHasher(12)
@@ -146,7 +149,7 @@ func main() {
 	deleteContentUC := contentUC.NewDeleteContentUseCase(contentRepo, storageSvc)
 
 	// Progress use cases
-	updateProgressUC := progressUC.NewUpdateProgressUseCase(progressRepo, lessonRepo, idGen)
+	updateProgressUC := progressUC.NewUpdateProgressUseCase(progressRepo, lessonRepo, quizQuestionRepo, quizAnswerRepo, idGen)
 	getProgressUC := progressUC.NewGetProgressUseCase(progressRepo)
 	listProgressUC := progressUC.NewListProgressUseCase(progressRepo)
 	courseProgressUC := progressUC.NewGetCourseProgressUseCase(progressRepo)
@@ -161,6 +164,16 @@ func main() {
 	createCommentUC := discussion.NewCreateCommentUseCase(discussionCommentRepo, discussionPostRepo, idGen)
 	listCommentsUC := discussion.NewListCommentsUseCase(discussionCommentRepo, discussionPostRepo)
 	deleteCommentUC := discussion.NewDeleteCommentUseCase(discussionCommentRepo)
+
+	// Quiz use cases
+	createQuestionUC := quiz.NewCreateQuestionUseCase(quizQuestionRepo, lessonRepo, idGen)
+	updateQuestionUC := quiz.NewUpdateQuestionUseCase(quizQuestionRepo)
+	deleteQuestionUC := quiz.NewDeleteQuestionUseCase(quizQuestionRepo)
+	listQuestionsUC := quiz.NewListQuestionsUseCase(quizQuestionRepo, lessonRepo)
+	listQuestionsAdminUC := quiz.NewListQuestionsAdminUseCase(quizQuestionRepo, lessonRepo)
+	submitAnswerUC := quiz.NewSubmitAnswerUseCase(quizAnswerRepo, quizQuestionRepo, idGen)
+	listMyAnswersUC := quiz.NewListMyAnswersUseCase(quizAnswerRepo, lessonRepo)
+	listAnswersReviewUC := quiz.NewListAnswersForReviewUseCase(quizAnswerRepo, quizQuestionRepo)
 
 	// Admin use cases
 	statsUC := admin.NewGetStatsUseCase(userRepo, subscriptionRepo, paymentRepo, cfg.Plan.Currency)
@@ -178,6 +191,10 @@ func main() {
 	discussionHandler := handler.NewDiscussionHandler(
 		createPostUC, listPostsUC, getPostUC, deletePostUC, pinPostUC, unpinPostUC,
 		createCommentUC, listCommentsUC, deleteCommentUC,
+	)
+	quizHandler := handler.NewQuizHandler(
+		createQuestionUC, updateQuestionUC, deleteQuestionUC, listQuestionsUC, listQuestionsAdminUC,
+		submitAnswerUC, listMyAnswersUC, listAnswersReviewUC,
 	)
 
 	progressHandler := handler.NewProgressHandler(updateProgressUC, getProgressUC, listProgressUC, courseProgressUC)
@@ -204,6 +221,7 @@ func main() {
 		paymentHandler,
 		qnaHandler,
 		discussionHandler,
+		quizHandler,
 		progressHandler,
 		healthHandler,
 		adminHandler,

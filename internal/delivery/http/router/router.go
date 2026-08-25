@@ -26,6 +26,7 @@ func NewRouter(
 	paymentHandler *handler.PaymentHandler,
 	qnaHandler *handler.QnAHandler,
 	discussionHandler *handler.DiscussionHandler,
+	quizHandler *handler.QuizHandler,
 	progressHandler *handler.ProgressHandler,
 	healthHandler *handler.HealthHandler,
 	adminHandler *handler.AdminHandler,
@@ -76,6 +77,11 @@ func NewRouter(
 			protected.GET("/modules/:id", moduleHandler.GetModule)
 			protected.GET("/modules/:id/lessons", lessonHandler.ListLessons)
 			protected.GET("/lessons/:id", lessonHandler.GetLesson)
+
+			// Post-lesson quiz (student view — options never carry is_correct)
+			protected.GET("/lessons/:id/quiz-questions", quizHandler.ListQuestions)
+			protected.GET("/lessons/:id/quiz-answers", quizHandler.ListMyAnswers)
+			protected.POST("/quiz-questions/:id/answers", quizHandler.SubmitAnswer)
 
 			// Discussion boards (per module; posts + threaded comments)
 			protected.GET("/modules/:id/posts", discussionHandler.ListPosts) // ?page=&limit=
@@ -151,6 +157,13 @@ func NewRouter(
 			admin.POST("/lessons", lessonHandler.CreateLesson)
 			admin.PUT("/lessons/:id", lessonHandler.UpdateLesson)
 			admin.DELETE("/lessons/:id", lessonHandler.DeleteLesson)
+
+			// Quiz authoring (admin view — options carry is_correct)
+			admin.GET("/lessons/:id/quiz-questions", quizHandler.ListQuestionsAdmin)
+			admin.POST("/lessons/:id/quiz-questions", quizHandler.CreateQuestion)
+			admin.PUT("/quiz-questions/:id", quizHandler.UpdateQuestion)
+			admin.DELETE("/quiz-questions/:id", quizHandler.DeleteQuestion)
+			admin.GET("/quiz-questions/:id/answers", quizHandler.ListAnswersForReview)
 
 			// Content
 			admin.POST("/content", contentHandler.UploadContent)

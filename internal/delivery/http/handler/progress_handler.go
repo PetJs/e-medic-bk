@@ -43,6 +43,10 @@ func (h *ProgressHandler) UpdateProgress(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Lesson not found"})
 			return
 		}
+		if errors.Is(err, progress.ErrQuizIncomplete) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Complete the quiz to finish this lesson"})
+			return
+		}
 		internalError(c, "Failed to update progress", err)
 		return
 	}
