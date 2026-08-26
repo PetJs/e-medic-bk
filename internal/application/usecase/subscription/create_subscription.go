@@ -50,6 +50,9 @@ func (uc *ActivateSubscriptionUseCase) Execute(ctx context.Context, userID, plan
 
 	if existing != nil {
 		existing.CurrentPeriodEnd = existing.CurrentPeriodEnd.Add(period)
+		// A new payment means they want to keep going — clear any pending
+		// cancellation from a previous change of heart.
+		existing.CanceledAt = nil
 		existing.UpdatedAt = now
 		if err := uc.subRepo.Update(ctx, existing); err != nil {
 			return nil, err

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"time"
 
-	"emedic-bk/internal/domain/entity"
 	"emedic-bk/internal/domain/repository"
 )
 
@@ -24,7 +23,12 @@ func NewCancelSubscriptionUseCase(subRepo repository.SubscriptionRepository) *Ca
 	return &CancelSubscriptionUseCase{subRepo: subRepo}
 }
 
-// Execute cancels a user's subscription.
+// Execute marks a subscription to not renew. Status is deliberately left
+// "active" — access is driven by CurrentPeriodEnd (see
+// SubscriptionRepository.GetActiveByUser), so the student keeps the access
+// they already paid for and it simply won't be extended again. CanceledAt
+// is the "won't renew" signal for the UI. Idempotent: canceling an
+// already-canceled subscription just re-confirms it.
 func (uc *CancelSubscriptionUseCase) Execute(ctx context.Context, userID, subscriptionID string) error {
 	sub, err := uc.subRepo.GetByID(ctx, subscriptionID)
 	if err != nil {
@@ -35,7 +39,6 @@ func (uc *CancelSubscriptionUseCase) Execute(ctx context.Context, userID, subscr
 	}
 
 	now := time.Now()
-	sub.Status = entity.SubscriptionStatusCanceled
 	sub.CanceledAt = &now
 	sub.UpdatedAt = now
 	return uc.subRepo.Update(ctx, sub)
