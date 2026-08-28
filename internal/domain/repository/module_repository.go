@@ -18,4 +18,6 @@ type ModuleRepository interface {
 	ListAll(ctx context.Context) ([]*entity.Module, error)
 	// UpdateCoverImage sets the generated cover image's storage key and status.
 	UpdateCoverImage(ctx context.Context, id, coverImageKey, coverImageStatus string) error
+	// Search matches title/description on modules within published courses.
+	Search(ctx context.Context, query string, limit int) ([]*entity.Module, error)
 }

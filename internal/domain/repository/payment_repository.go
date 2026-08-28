@@ -19,4 +19,6 @@ type PaymentRepository interface {
 	CountByUser(ctx context.Context, userID string) (int64, error)
 	// SumCompletedSince returns total completed payment volume since a point in time.
 	SumCompletedSince(ctx context.Context, since time.Time) (int64, error)
+	// RevenueByDay returns completed payment volume grouped by day, since a point in time.
+	RevenueByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error)
 }

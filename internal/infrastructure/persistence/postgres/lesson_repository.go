@@ -92,6 +92,44 @@ func (r *LessonRepository) ListByModule(ctx context.Context, moduleID string) ([
 	return lessons, rows.Err()
 }
 
+func (r *LessonRepository) Search(ctx context.Context, query string, limit int) ([]*entity.Lesson, error) {
+	pattern := "%" + escapeLike(query) + "%"
+	sql := `
+		SELECT l.id, l.module_id, l.title, COALESCE(l.description, ''), l."order", l.duration, l.created_at, l.updated_at
+		FROM lessons l
+		JOIN modules m ON m.id = l.module_id
+		JOIN courses c ON c.id = m.course_id AND c.is_published
+		WHERE l.title ILIKE $1 ESCAPE '\' OR l.description ILIKE $1 ESCAPE '\'
+		ORDER BY l.title
+		LIMIT $2
+	`
+	rows, err := r.db.Pool.Query(ctx, sql, pattern, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var lessons []*entity.Lesson
+	for rows.Next() {
+		lesson := &entity.Lesson{}
+		err := rows.Scan(
+			&lesson.ID,
+			&lesson.ModuleID,
+			&lesson.Title,
+			&lesson.Description,
+			&lesson.Order,
+			&lesson.Duration,
+			&lesson.CreatedAt,
+			&lesson.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		lessons = append(lessons, lesson)
+	}
+	return lessons, rows.Err()
+}
+
 func (r *LessonRepository) scanLesson(row pgx.Row) (*entity.Lesson, error) {
 	lesson := &entity.Lesson{}
 	err := row.Scan(

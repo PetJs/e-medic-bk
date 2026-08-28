@@ -4,6 +4,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"emedic-bk/internal/domain/entity"
 )
@@ -22,4 +23,6 @@ type SubscriptionRepository interface {
 	ListByUser(ctx context.Context, userID string) ([]*entity.Subscription, error)
 	ListExpiring(ctx context.Context, withinDays int) ([]*entity.Subscription, error)
 	CountActive(ctx context.Context) (int64, error)
+	// NewSubscriptionsByDay returns new subscriptions created grouped by day, since a point in time.
+	NewSubscriptionsByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error)
 }

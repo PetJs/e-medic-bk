@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"emedic-bk/internal/domain/entity"
 )
@@ -17,4 +18,6 @@ type UserRepository interface {
 	List(ctx context.Context, limit, offset int) ([]*entity.User, error)
 	Count(ctx context.Context) (int64, error)
 	CountByRole(ctx context.Context, role string) (int64, error)
+	// SignupsByDay returns new user signups grouped by day, since a point in time.
+	SignupsByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error)
 }

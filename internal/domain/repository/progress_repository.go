@@ -14,4 +14,7 @@ type ProgressRepository interface {
 	ListByUser(ctx context.Context, userID string) ([]*entity.Progress, error)
 	ListByUserAndCourse(ctx context.Context, userID, courseID string) ([]*entity.Progress, error)
 	GetCourseCompletionStats(ctx context.Context, userID, courseID string) (completed, total int, err error)
+	// GetModuleCompletionRates returns, per module, the share of enrolled
+	// students who have completed every lesson in it.
+	GetModuleCompletionRates(ctx context.Context) ([]entity.ModuleCompletionRate, error)
 }

@@ -68,3 +68,26 @@ type AdminStatsResponse struct {
 	MonthlyRevenue      int64  `json:"monthly_revenue"` // smallest currency unit, last 30 days
 	Currency            string `json:"currency"`
 }
+
+// DailyMetricResponse is one bucket of a day-by-day trend.
+type DailyMetricResponse struct {
+	Date  string `json:"date"` // YYYY-MM-DD
+	Value int64  `json:"value"`
+}
+
+// ModuleCompletionRateResponse is the share of students who started a module
+// (touched progress on any of its lessons) who went on to complete it.
+type ModuleCompletionRateResponse struct {
+	ModuleID      string  `json:"module_id"`
+	ModuleTitle   string  `json:"module_title"`
+	CompletionPct float64 `json:"completion_pct"`
+}
+
+// AdminAnalyticsResponse aggregates trend data for the admin analytics dashboard.
+type AdminAnalyticsResponse struct {
+	RevenueTrend          []DailyMetricResponse          `json:"revenue_trend"`
+	SignupTrend           []DailyMetricResponse          `json:"signup_trend"`
+	SubscriptionTrend     []DailyMetricResponse          `json:"subscription_trend"`
+	ModuleCompletionRates []ModuleCompletionRateResponse `json:"module_completion_rates"`
+	Currency              string                         `json:"currency"`
+}

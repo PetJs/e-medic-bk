@@ -22,9 +22,11 @@ import (
 	"emedic-bk/internal/application/usecase/discussion"
 	"emedic-bk/internal/application/usecase/lesson"
 	"emedic-bk/internal/application/usecase/module"
+	"emedic-bk/internal/application/usecase/notes"
 	"emedic-bk/internal/application/usecase/payment"
 	progressUC "emedic-bk/internal/application/usecase/progress"
 	"emedic-bk/internal/application/usecase/quiz"
+	"emedic-bk/internal/application/usecase/search"
 	"emedic-bk/internal/application/usecase/subscription"
 	"emedic-bk/internal/application/usecase/user"
 	"emedic-bk/internal/delivery/http/handler"
@@ -75,6 +77,7 @@ func main() {
 	discussionCommentRepo := postgres.NewDiscussionCommentRepository(db)
 	quizQuestionRepo := postgres.NewQuizQuestionRepository(db)
 	quizAnswerRepo := postgres.NewQuizAnswerRepository(db)
+	lessonNoteRepo := postgres.NewLessonNoteRepository(db)
 
 	// Initialize infrastructure services
 	hasher := infraAuth.NewBcryptHasher(12)
@@ -175,8 +178,14 @@ func main() {
 	listMyAnswersUC := quiz.NewListMyAnswersUseCase(quizAnswerRepo, lessonRepo)
 	listAnswersReviewUC := quiz.NewListAnswersForReviewUseCase(quizAnswerRepo, quizQuestionRepo)
 
+	// Personal note use cases
+	createNoteUC := notes.NewCreateNoteUseCase(lessonNoteRepo, lessonRepo, idGen)
+	listNotesUC := notes.NewListNotesUseCase(lessonNoteRepo)
+	deleteNoteUC := notes.NewDeleteNoteUseCase(lessonNoteRepo)
+
 	// Admin use cases
 	statsUC := admin.NewGetStatsUseCase(userRepo, subscriptionRepo, paymentRepo, cfg.Plan.Currency)
+	analyticsUC := admin.NewGetAnalyticsUseCase(paymentRepo, userRepo, subscriptionRepo, progressRepo, cfg.Plan.Currency)
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(registerUC, loginUC, refreshUC)
@@ -186,7 +195,7 @@ func main() {
 	lessonHandler := handler.NewLessonHandler(createLessonUC, updateLessonUC, deleteLessonUC, getLessonUC, listLessonsUC)
 	subscriptionHandler := handler.NewSubscriptionHandler(listSubsUC, cancelSubUC)
 	paymentHandler := handler.NewPaymentHandler(initiatePaymentUC, verifyPaymentUC, listPaymentsUC, paystackSvc, plan)
-	adminHandler := handler.NewAdminHandler(statsUC)
+	adminHandler := handler.NewAdminHandler(statsUC, analyticsUC)
 	contentHandler := handler.NewContentHandler(uploadContentUC, getContentURLUC, deleteContentUC)
 	discussionHandler := handler.NewDiscussionHandler(
 		createPostUC, listPostsUC, getPostUC, deletePostUC, pinPostUC, unpinPostUC,
@@ -196,6 +205,9 @@ func main() {
 		createQuestionUC, updateQuestionUC, deleteQuestionUC, listQuestionsUC, listQuestionsAdminUC,
 		submitAnswerUC, listMyAnswersUC, listAnswersReviewUC,
 	)
+	searchUC := search.NewSearchUseCase(courseRepo, moduleRepo, lessonRepo)
+	searchHandler := handler.NewSearchHandler(searchUC)
+	noteHandler := handler.NewNoteHandler(createNoteUC, listNotesUC, deleteNoteUC)
 
 	progressHandler := handler.NewProgressHandler(updateProgressUC, getProgressUC, listProgressUC, courseProgressUC)
 
@@ -222,6 +234,8 @@ func main() {
 		qnaHandler,
 		discussionHandler,
 		quizHandler,
+		searchHandler,
+		noteHandler,
 		progressHandler,
 		healthHandler,
 		adminHandler,

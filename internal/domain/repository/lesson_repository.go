@@ -14,4 +14,6 @@ type LessonRepository interface {
 	Update(ctx context.Context, lesson *entity.Lesson) error
 	Delete(ctx context.Context, id string) error
 	ListByModule(ctx context.Context, moduleID string) ([]*entity.Lesson, error)
+	// Search matches title/description on lessons within published courses.
+	Search(ctx context.Context, query string, limit int) ([]*entity.Lesson, error)
 }

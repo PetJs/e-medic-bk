@@ -117,6 +117,22 @@ func (r *SubscriptionRepository) CountActive(ctx context.Context) (int64, error)
 	return count, err
 }
 
+func (r *SubscriptionRepository) NewSubscriptionsByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error) {
+	query := `
+		SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)
+		FROM subscriptions
+		WHERE created_at >= $1
+		GROUP BY day
+		ORDER BY day
+	`
+	rows, err := r.db.Pool.Query(ctx, query, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanDailyMetrics(rows)
+}
+
 func (r *SubscriptionRepository) scanSubscription(row pgx.Row) (*entity.Subscription, error) {
 	sub := &entity.Subscription{}
 	var status string

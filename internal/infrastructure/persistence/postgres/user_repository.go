@@ -134,6 +134,22 @@ func (r *UserRepository) CountByRole(ctx context.Context, role string) (int64, e
 	return count, err
 }
 
+func (r *UserRepository) SignupsByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error) {
+	query := `
+		SELECT DATE_TRUNC('day', created_at) AS day, COUNT(*)
+		FROM users
+		WHERE created_at >= $1
+		GROUP BY day
+		ORDER BY day
+	`
+	rows, err := r.db.Pool.Query(ctx, query, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanDailyMetrics(rows)
+}
+
 func (r *UserRepository) scanUser(row pgx.Row) (*entity.User, error) {
 	user := &entity.User{}
 	err := row.Scan(

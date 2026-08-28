@@ -109,6 +109,26 @@ func (r *ModuleRepository) ListAll(ctx context.Context) ([]*entity.Module, error
 	return r.scanModules(rows)
 }
 
+func (r *ModuleRepository) Search(ctx context.Context, query string, limit int) ([]*entity.Module, error) {
+	pattern := "%" + escapeLike(query) + "%"
+	sql := `
+		SELECT m.id, m.course_id, m.title, COALESCE(m.description, ''), m."order", m.is_premium,
+		       COALESCE(m.cover_image_key, ''), m.cover_image_status,
+		       m.created_at, m.updated_at,
+		       COUNT(l.id), COALESCE(SUM(l.duration), 0)
+		FROM modules m
+		JOIN courses c ON c.id = m.course_id AND c.is_published
+		LEFT JOIN lessons l ON l.module_id = m.id
+		WHERE m.title ILIKE $1 ESCAPE '\' OR m.description ILIKE $1 ESCAPE '\'
+	` + moduleGroupBy + ` ORDER BY m.title LIMIT $2`
+	rows, err := r.db.Pool.Query(ctx, sql, pattern, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return r.scanModules(rows)
+}
+
 func (r *ModuleRepository) scanModule(row pgx.Row) (*entity.Module, error) {
 	module := &entity.Module{}
 	err := row.Scan(

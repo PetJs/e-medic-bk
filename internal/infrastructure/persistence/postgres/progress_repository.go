@@ -93,6 +93,65 @@ func (r *ProgressRepository) GetCourseCompletionStats(ctx context.Context, userI
 	return completed, total, err
 }
 
+// GetModuleCompletionRates reports, per module, what share of the students
+// who started it (touched progress on at least one of its lessons) went on
+// to complete every lesson in it. Deliberately NOT based on the
+// `enrollments` table — that feature was never actually implemented
+// (EnrollmentHandler is a 501 stub end-to-end), so the table is always
+// empty; "started via progress" is the real, live audience signal instead.
+func (r *ProgressRepository) GetModuleCompletionRates(ctx context.Context) ([]entity.ModuleCompletionRate, error) {
+	query := `
+		WITH lesson_totals AS (
+			SELECT module_id, COUNT(*) AS total_lessons
+			FROM lessons
+			GROUP BY module_id
+		),
+		user_module_progress AS (
+			SELECT l.module_id, p.user_id,
+			       COUNT(*) FILTER (WHERE p.is_completed) AS completed_lessons
+			FROM lessons l
+			JOIN progress p ON p.lesson_id = l.id
+			GROUP BY l.module_id, p.user_id
+		)
+		SELECT
+			m.id,
+			m.title,
+			COUNT(ump.user_id) AS starters,
+			COUNT(ump.user_id) FILTER (WHERE ump.completed_lessons = lt.total_lessons) AS completers
+		FROM modules m
+		JOIN lesson_totals lt ON lt.module_id = m.id
+		LEFT JOIN user_module_progress ump ON ump.module_id = m.id
+		GROUP BY m.id, m.title
+		ORDER BY m.title
+	`
+	rows, err := r.db.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rates []entity.ModuleCompletionRate
+	for rows.Next() {
+		var (
+			moduleID, title      string
+			starters, completers int
+		)
+		if err := rows.Scan(&moduleID, &title, &starters, &completers); err != nil {
+			return nil, err
+		}
+		pct := 0.0
+		if starters > 0 {
+			pct = float64(completers) / float64(starters) * 100
+		}
+		rates = append(rates, entity.ModuleCompletionRate{
+			ModuleID:      moduleID,
+			ModuleTitle:   title,
+			CompletionPct: pct,
+		})
+	}
+	return rates, rows.Err()
+}
+
 func (r *ProgressRepository) scanProgress(row pgx.Row) (*entity.Progress, error) {
 	p := &entity.Progress{}
 	err := row.Scan(

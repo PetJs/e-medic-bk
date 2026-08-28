@@ -102,6 +102,23 @@ func (r *CourseRepository) Count(ctx context.Context) (int64, error) {
 	return count, err
 }
 
+func (r *CourseRepository) Search(ctx context.Context, query string, limit int) ([]*entity.Course, error) {
+	pattern := "%" + escapeLike(query) + "%"
+	sql := `
+		SELECT ` + courseColumns + `
+		FROM courses
+		WHERE is_published AND (title ILIKE $1 ESCAPE '\' OR description ILIKE $1 ESCAPE '\')
+		ORDER BY title
+		LIMIT $2
+	`
+	rows, err := r.db.Pool.Query(ctx, sql, pattern, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return r.scanCourses(rows)
+}
+
 func (r *CourseRepository) scanCourse(row pgx.Row) (*entity.Course, error) {
 	course := &entity.Course{}
 	err := row.Scan(

@@ -101,6 +101,22 @@ func (r *PaymentRepository) SumCompletedSince(ctx context.Context, since time.Ti
 	return sum, err
 }
 
+func (r *PaymentRepository) RevenueByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error) {
+	query := `
+		SELECT DATE_TRUNC('day', created_at) AS day, COALESCE(SUM(amount), 0)
+		FROM payments
+		WHERE status = 'completed' AND created_at >= $1
+		GROUP BY day
+		ORDER BY day
+	`
+	rows, err := r.db.Pool.Query(ctx, query, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanDailyMetrics(rows)
+}
+
 func (r *PaymentRepository) scanPayment(row pgx.Row) (*entity.Payment, error) {
 	payment := &entity.Payment{}
 	var status string

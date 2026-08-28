@@ -17,4 +17,6 @@ type CourseRepository interface {
 	List(ctx context.Context, limit, offset int) ([]*entity.Course, error)
 	ListByAuthor(ctx context.Context, authorID string, limit, offset int) ([]*entity.Course, error)
 	Count(ctx context.Context) (int64, error)
+	// Search matches title/description on published courses, case-insensitive.
+	Search(ctx context.Context, query string, limit int) ([]*entity.Course, error)
 }

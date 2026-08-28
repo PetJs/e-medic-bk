@@ -27,6 +27,8 @@ func NewRouter(
 	qnaHandler *handler.QnAHandler,
 	discussionHandler *handler.DiscussionHandler,
 	quizHandler *handler.QuizHandler,
+	searchHandler *handler.SearchHandler,
+	noteHandler *handler.NoteHandler,
 	progressHandler *handler.ProgressHandler,
 	healthHandler *handler.HealthHandler,
 	adminHandler *handler.AdminHandler,
@@ -72,11 +74,19 @@ func NewRouter(
 			protected.GET("/courses", courseHandler.ListCourses)
 			protected.GET("/courses/:id", courseHandler.GetCourse)
 
+			// Search (courses, modules, lessons)
+			protected.GET("/search", searchHandler.Search) // ?q=
+
 			// Modules & Lessons (use nested paths to avoid conflicts)
 			protected.GET("/modules", moduleHandler.ListModules) // ?course_id=xxx
 			protected.GET("/modules/:id", moduleHandler.GetModule)
 			protected.GET("/modules/:id/lessons", lessonHandler.ListLessons)
 			protected.GET("/lessons/:id", lessonHandler.GetLesson)
+
+			// Personal lesson notes (private — own-only, no admin bypass)
+			protected.GET("/lessons/:id/notes", noteHandler.ListNotes)
+			protected.POST("/lessons/:id/notes", noteHandler.CreateNote)
+			protected.DELETE("/notes/:id", noteHandler.DeleteNote)
 
 			// Post-lesson quiz (student view — options never carry is_correct)
 			protected.GET("/lessons/:id/quiz-questions", quizHandler.ListQuestions)
@@ -134,6 +144,7 @@ func NewRouter(
 		{
 			// Dashboard stats
 			admin.GET("/stats", adminHandler.Stats)
+			admin.GET("/stats/analytics", adminHandler.Analytics) // ?days=7|30|90
 
 			// Users
 			admin.GET("/users", userHandler.ListUsers)
