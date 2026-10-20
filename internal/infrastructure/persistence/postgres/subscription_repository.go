@@ -53,11 +53,12 @@ func (r *SubscriptionRepository) GetActiveByUser(ctx context.Context, userID str
 	query := `
 		SELECT ` + subscriptionColumns + `
 		FROM subscriptions
-		WHERE user_id = $1 AND status = 'active' AND current_period_end > NOW()
+		WHERE user_id = $1 AND status = 'active'
+		  AND current_period_end + ($2 * INTERVAL '1 second') > NOW()
 		ORDER BY current_period_end DESC
 		LIMIT 1
 	`
-	row := r.db.Pool.QueryRow(ctx, query, userID)
+	row := r.db.Pool.QueryRow(ctx, query, userID, int64(entity.SubscriptionGracePeriod.Seconds()))
 	return r.scanSubscription(row)
 }
 
@@ -112,9 +113,28 @@ func (r *SubscriptionRepository) ListExpiring(ctx context.Context, withinDays in
 func (r *SubscriptionRepository) CountActive(ctx context.Context) (int64, error) {
 	var count int64
 	err := r.db.Pool.QueryRow(ctx,
-		`SELECT COUNT(*) FROM subscriptions WHERE status = 'active' AND current_period_end > NOW()`,
+		`SELECT COUNT(*) FROM subscriptions
+		 WHERE status = 'active'
+		   AND current_period_end + ($1 * INTERVAL '1 second') > NOW()`,
+		int64(entity.SubscriptionGracePeriod.Seconds()),
 	).Scan(&count)
 	return count, err
+}
+
+// ExpireStale marks active subscriptions expired once their grace period has
+// elapsed, so the stored status matches the access rule enforced by
+// GetActiveByUser and the frontend can show the pay button again.
+func (r *SubscriptionRepository) ExpireStale(ctx context.Context) (int64, error) {
+	tag, err := r.db.Pool.Exec(ctx, `
+		UPDATE subscriptions
+		SET status = 'expired', updated_at = NOW()
+		WHERE status = 'active'
+		  AND current_period_end + ($1 * INTERVAL '1 second') <= NOW()
+	`, int64(entity.SubscriptionGracePeriod.Seconds()))
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
 }
 
 func (r *SubscriptionRepository) NewSubscriptionsByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error) {

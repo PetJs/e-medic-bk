@@ -12,8 +12,9 @@ type SubscriptionExpiryPayload struct {
 }
 
 func handleSubscriptionExpiryCheck(ctx context.Context, payload json.RawMessage) error {
-	// TODO: Find subscriptions expiring soon
-	// TODO: Send reminder emails
-	// TODO: Mark expired subscriptions
+	// Expiry is enforced by the API server's periodic sweep
+	// (subscription.ExpireSubscriptionsUseCase) and by grace-aware access
+	// queries. This worker job is kept for deployments that later move the
+	// sweep off the API process.
 	return nil
 }

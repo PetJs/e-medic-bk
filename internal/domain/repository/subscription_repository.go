@@ -17,12 +17,20 @@ var ErrDuplicateActiveSubscription = errors.New("user already has an active subs
 type SubscriptionRepository interface {
 	Create(ctx context.Context, subscription *entity.Subscription) error
 	GetByID(ctx context.Context, id string) (*entity.Subscription, error)
+	// GetActiveByUser returns the subscription currently granting premium
+	// access: status active and current_period_end plus the grace period
+	// still in the future.
 	GetActiveByUser(ctx context.Context, userID string) (*entity.Subscription, error)
 	Update(ctx context.Context, subscription *entity.Subscription) error
 	Delete(ctx context.Context, id string) error
 	ListByUser(ctx context.Context, userID string) ([]*entity.Subscription, error)
 	ListExpiring(ctx context.Context, withinDays int) ([]*entity.Subscription, error)
+	// CountActive counts subscriptions that currently grant access
+	// (including those inside their grace period).
 	CountActive(ctx context.Context) (int64, error)
+	// ExpireStale flips active subscriptions to expired once their grace
+	// period has elapsed. Returns the number of rows updated.
+	ExpireStale(ctx context.Context) (int64, error)
 	// NewSubscriptionsByDay returns new subscriptions created grouped by day, since a point in time.
 	NewSubscriptionsByDay(ctx context.Context, since time.Time) ([]entity.DailyMetric, error)
 }
