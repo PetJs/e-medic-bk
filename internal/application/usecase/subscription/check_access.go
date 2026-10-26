@@ -37,8 +37,14 @@ func NewListSubscriptionsUseCase(subRepo repository.SubscriptionRepository) *Lis
 	return &ListSubscriptionsUseCase{subRepo: subRepo}
 }
 
-// Execute returns all subscriptions for a user, newest first.
+// Execute returns all subscriptions for a user, newest first. Stale
+// subscriptions are expired first so the reported status is accurate and the
+// client knows when to offer a renewal payment.
 func (uc *ListSubscriptionsUseCase) Execute(ctx context.Context, userID string) ([]*dto.SubscriptionResponse, error) {
+	if _, err := uc.subRepo.ExpireStale(ctx); err != nil {
+		return nil, err
+	}
+
 	subs, err := uc.subRepo.ListByUser(ctx, userID)
 	if err != nil {
 		return nil, err

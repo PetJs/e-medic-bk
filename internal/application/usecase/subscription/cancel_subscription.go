@@ -24,7 +24,7 @@ func NewCancelSubscriptionUseCase(subRepo repository.SubscriptionRepository) *Ca
 }
 
 // Execute marks a subscription to not renew. Status is deliberately left
-// "active" — access is driven by CurrentPeriodEnd (see
+// "active" — access is driven by CurrentPeriodEnd plus the grace period (see
 // SubscriptionRepository.GetActiveByUser), so the student keeps the access
 // they already paid for and it simply won't be extended again. CanceledAt
 // is the "won't renew" signal for the UI. Idempotent: canceling an

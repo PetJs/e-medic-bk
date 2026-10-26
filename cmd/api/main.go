@@ -138,6 +138,29 @@ func main() {
 	activateSubUC := subscription.NewActivateSubscriptionUseCase(subscriptionRepo, idGen)
 	cancelSubUC := subscription.NewCancelSubscriptionUseCase(subscriptionRepo)
 	listSubsUC := subscription.NewListSubscriptionsUseCase(subscriptionRepo)
+	expireSubsUC := subscription.NewExpireSubscriptionsUseCase(subscriptionRepo)
+
+	// Revert subscriptions to free access once their 3-day grace period ends.
+	// Query-time access checks already honour the grace window; this sweep keeps
+	// the stored status (and therefore the UI's pay button) in sync.
+	expiryCtx, stopExpiry := context.WithCancel(context.Background())
+	defer stopExpiry()
+	go func() {
+		ticker := time.NewTicker(30 * time.Minute)
+		defer ticker.Stop()
+		for {
+			if n, err := expireSubsUC.Execute(expiryCtx); err != nil {
+				log.Printf("Subscription expiry sweep failed: %v", err)
+			} else if n > 0 {
+				log.Printf("Expired %d subscription(s); access reverted to free", n)
+			}
+			select {
+			case <-expiryCtx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 
 	// Payment use cases
 	plan := payment.PlanDetails{Amount: cfg.Plan.Amount, Currency: cfg.Plan.Currency}

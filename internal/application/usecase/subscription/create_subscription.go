@@ -13,6 +13,7 @@ import (
 )
 
 func toSubscriptionResponse(s *entity.Subscription) *dto.SubscriptionResponse {
+	now := time.Now()
 	return &dto.SubscriptionResponse{
 		ID:                 s.ID,
 		UserID:             s.UserID,
@@ -20,6 +21,8 @@ func toSubscriptionResponse(s *entity.Subscription) *dto.SubscriptionResponse {
 		Status:             string(s.Status),
 		CurrentPeriodStart: s.CurrentPeriodStart,
 		CurrentPeriodEnd:   s.CurrentPeriodEnd,
+		GracePeriodEnd:     s.AccessEndsAt(),
+		InGrace:            s.IsInGrace(now),
 		CanceledAt:         s.CanceledAt,
 		CreatedAt:          s.CreatedAt,
 	}
@@ -38,10 +41,16 @@ func NewActivateSubscriptionUseCase(subRepo repository.SubscriptionRepository, i
 }
 
 // Execute grants one billing period (30 days). An existing active
-// subscription is extended from its current period end.
+// subscription is extended from its current period end. Subscriptions whose
+// grace period has already elapsed are expired first so a fresh period can
+// start without tripping the one-active-subscription constraint.
 func (uc *ActivateSubscriptionUseCase) Execute(ctx context.Context, userID, planID string) (*dto.SubscriptionResponse, error) {
 	const period = 30 * 24 * time.Hour
 	now := time.Now()
+
+	if _, err := uc.subRepo.ExpireStale(ctx); err != nil {
+		return nil, err
+	}
 
 	existing, err := uc.subRepo.GetActiveByUser(ctx, userID)
 	if err != nil {
